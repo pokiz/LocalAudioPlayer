@@ -14,4 +14,4 @@ Local audio player with a playlist gracefully filled by clients via a web interf
 
 Now just type "node index.js", and try to add some musics via http://127.0.0.1:3000 !
 
-NB : Not all soundcloud tracks can be played, some artists/label remove access to it via API (You will be notified when adding it). In this case, give YouTube a try ! ;)
+NB : Not all soundcloud tracks can be played, some artists/label remove access to it via API (You will be notified when adding it from web interface). In this case, give YouTube a try ! ;)
