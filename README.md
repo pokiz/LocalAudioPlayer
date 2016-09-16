@@ -2,6 +2,9 @@
 (from SoundCloud and Youtube)
 Local audio player with a playlist gracefully filled by clients via a web interface.
 
+Requirements:
+* ALSA
+* mplayer
 
 1. Clone this repository
 
