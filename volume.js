@@ -2,9 +2,9 @@ var loudness = require('loudness');
 var timer = require("timers");
 
 module.exports = {
-	actual: 20,
+	actual: 50,
 	transition: false,
-	before_fadeout: 20,
+	before_fadeout: 50,
 	fade_in_length: 5,
 	fade_in_step: 25,
 	fade_in_actual_step: 0,

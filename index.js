@@ -15,7 +15,7 @@ var express = require('express'),
 var routines = timer.setInterval(function() {
 	var now = new Date().getTime();
 	if (audio.last_start_timestamp == 0)
-		console.log("Nothing playing")
+		console.log("Nothing to play...")
 	else
 	{
 		if (audio.now_playing_duration_sec)
@@ -31,11 +31,13 @@ var routines = timer.setInterval(function() {
 
 var client_count = 0;
 
-var download_path = "./downloaded/";
-var application_title = "El Jukebox";
+global.LAP = {
+	download_path: "./downloaded/",
+	application_title: "El Jukebox"
+};
 
 try {
-	fs.statSync(download_path);
+	fs.statSync(LAP.download_path);
 } catch(e) {
 	fs.mkdirSync(download_path);
 }
@@ -55,7 +57,7 @@ app.set('view engine', 'ejs');
 
 app.get('/', function(req, res){
 	res.render('index', {
-		title: application_title,
+		title: LAP.application_title,
 		now_playing: audio.now_playing,
 		now_playing_end: audio.last_start_timestamp + (audio.now_playing_duration_sec * 1000),
 		musics: music.list
@@ -69,7 +71,7 @@ app.post('/add', function(req, res){
 	var errors = [];
 	var messages = [];
 	var id = music.get_unique_id();
-	var output_file = download_path + id + ".mp3";
+	var output_file = LAP.download_path + id + ".mp3";
 	var cb_add_music = function(next) {
 		audio.get_file_duration_sec(output_file, function (duration) {
 			music.add(id, name, url, duration, function() {
@@ -81,7 +83,7 @@ app.post('/add', function(req, res){
 	};
 	var cb_render_page = function () {
 		res.render('index', {
-			title: application_title,
+			title: LAP.application_title,
 			now_playing: audio.now_playing,
 			now_playing_end: audio.last_start_timestamp + (audio.now_playing_duration_sec * 1000),
 			musics: music.list,
@@ -96,7 +98,6 @@ app.post('/add', function(req, res){
 	{
 		errors.push("Url is already used.");
 	}
-
 	if (typeof name != "string" || (name.length < 2 || name.length > 128))
 	{
 		errors.push("Name must be between 2 and 128 characters.");
@@ -150,12 +151,10 @@ io.sockets.on('connection', function (socket) {
     	count: client_count
     });
 	socket.on('up', function (data) {
-		console.log("up received");
-		console.log(data);
-		var music = music.get_by_id(data.id);
-		if (music)
+		var item = music.get_by_id(data.id);
+		if (item)
 		{
-			(music["ups"])++;
+			(item["ups"])++;
 			music.sort_and_save(function () {
 			    io.sockets.emit('up', {id: data.id});
 			});
@@ -163,6 +162,7 @@ io.sockets.on('connection', function (socket) {
 	});
 	socket.on('remove', function (data) {
 		music.remove_by_id(data.id);
+		io.sockets.emit('remove', {id: data.id});
 	});
 	socket.on('disconnect', function () {
       	--client_count;
@@ -181,7 +181,7 @@ function loop_playing()
 {
 	var to_play = music.get_next();
 	var cb_play = function () {
-		music.download_file_if_empty_or_none(download_path, to_play, function(err) {
+		music.download_file_if_empty_or_none(LAP.download_path, to_play, function(err) {
 			if (err)
 			{
 				console.log(err);
@@ -191,7 +191,7 @@ function loop_playing()
 			audio.now_playing_duration_sec = to_play.duration;
 			io.sockets.emit("now-playing", {music: to_play});
 			volume.fade_in_effect();
-			audio.play_it(download_path + to_play.id + ".mp3", function () {
+			audio.play_it(LAP.download_path + to_play.id + ".mp3", function () {
 				audio.now_playing_duration_sec = 0;
 				audio.now_playing = "";
 				loop_playing();

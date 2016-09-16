@@ -55,6 +55,10 @@
           var url = getRootUrl();
           window.location.href = url;
         });
+        socket.on('remove', function (data) {
+          var url = getRootUrl();
+          window.location.href = url;
+        });
         socket.on('now-playing', function (data) {
           var url = getRootUrl();
           window.location.href = url;

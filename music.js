@@ -18,8 +18,8 @@ module.exports = {
 	add: function(id, name, url, duration, next)
 	{
 		console.log("Added : " + name);
-		console.log("	   |-> url 		: " + url);
-		console.log("	   |-> duration	: " + duration);
+		console.log("      |-> url      : " + url);
+		console.log("      |-> duration : " + duration);
 		file.musics.push({id: id, name: name, url: url, duration: parseInt(duration), ups: 0});
 		module.exports.sort_and_save(function() {
 			console.log("Musics sorted after add.")
@@ -27,9 +27,9 @@ module.exports = {
 		});
 	},
 	add_attribute_by_id: function (id, attr, value) {
-		var music = module.exports.get_music_by_id(id);
+		var music = module.exports.get_by_id(id);
 		music[attr] = value;
-		module.exports.save_file();
+		module.exports.sort_and_save(function() {});
 	},
 	get_unique_id: function get_unique_id() {
 		var date = new Date();
@@ -62,7 +62,7 @@ module.exports = {
 		module.exports.save_file();
 		next();
 	},
-	get_music_by_id: function(id)
+	get_by_id: function(id)
 	{
 		var musics = file.musics;
 		for (var music in musics)
@@ -79,9 +79,15 @@ module.exports = {
 			if (file.musics[music].id == id)
 			{
 				var index = file.musics.indexOf(file.musics[music]);
-				console.log("Trying to remove : " + index);
 				file.musics.splice(index, 1);
-				
+				fs.unlink(LAP.download_path + id + ".mp3", function (err) {
+					if (err)
+					{
+						console.log("File not removed");
+						return console.log(err);
+					}
+					module.exports.sort_and_save(function() { return console.log("File removed."); });
+				});
 			}
 		}
 	},
@@ -116,7 +122,7 @@ module.exports = {
 			{
 				if (err.errno === -2)
 				{
-					console.log("Audio file doesn't exist, try to redownloading");
+					console.log("Audio file doesn't exist, trying to redownload");
 					cb_download(obj.url);
 				}
 				else
@@ -172,7 +178,7 @@ module.exports = {
 	},
 	save_file: function ()
 	{
-		console.log("Saving musics file ->");
+		console.log("Saving musics file.");
 		var data_to_save = JSON.stringify(file);
 		fs.writeFile("musics.json", data_to_save, function (err) {
 			if (err) console.log(err);
