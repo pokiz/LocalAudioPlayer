@@ -2,10 +2,11 @@
 (from SoundCloud and Youtube)
 Local audio player with a playlist gracefully filled by clients via a web interface.
 
-Requirements:
+## Requirements:
 * ALSA
 * mplayer
 
+## Steps to install
 1. Clone this repository
 
 2. Run "npm install" in the cloned folder, take a coffee (or/and go to step 3.)
@@ -17,4 +18,4 @@ Requirements:
 
 Now just type "node index.js", and try to add some musics via http://127.0.0.1:3000 !
 
-NB : Not all soundcloud tracks can be played, some artists/label remove access to it via API (You will be notified when adding it from web interface). In this case, give YouTube a try ! ;)
+NB : Not all soundcloud tracks can be played, some artists/labels remove API access to it (You will be notified vie interface). In this case, give YouTube a try ! ;)
