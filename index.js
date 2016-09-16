@@ -39,7 +39,7 @@ global.LAP = {
 try {
 	fs.statSync(LAP.download_path);
 } catch(e) {
-	fs.mkdirSync(download_path);
+	fs.mkdirSync(LAP.download_path);
 }
 
 /*----]
