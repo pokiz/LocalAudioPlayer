@@ -55,7 +55,7 @@
 		<div id="menu2" class="tab-pane fade">
     		<div class="form-group row">
    				<div class="col-sm-12">
-					<input type="text" id="NameBox" placeholder="Name" class="form-control">
+					<input type="text" id="NameBox" placeholder="Name (between 2 and 128 characters)" class="form-control">
      			</div>
    			</div>
     		<div class="form-group row">
@@ -70,16 +70,26 @@
     		</div>
 		</div>
 	</div>
-	<div class="green-message-list">
-		<% if (typeof messages === "object" && typeof messages.green === "object") { messages.green.forEach(function (message) { %>
-			<%= message %><br>
-		<% })} %>
+	<div class="green-message-list alert-fixed">
+		<% if (typeof messages === "object" && typeof messages.green === "object" && messages.green.length) { %>
+			<div class="alert alert-success">
+				<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+				<% messages.green.forEach(function (message) { %>
+					<%= message %>
+				<% }) %>
+			</div>
+		<% } %>
 	</div>
 
-	<div id="red-messages-list" style="color: red;">
-		<% if (typeof messages === "object" && typeof messages.red === "object") { messages.red.forEach(function (message) { %>
-			<%= message %><br>
-		<% })} %>
+	<div class="red-message-list alert-fixed">
+		<% if (typeof messages === "object" && typeof messages.red === "object") { %>
+			<div class="alert alert-danger">
+				<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+				<% messages.red.forEach(function (message) { %>
+					<b><%= message %></b><br>
+				<% }) %>
+			</div>
+		<% } %>
 	</div>
 </div>
 

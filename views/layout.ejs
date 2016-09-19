@@ -100,24 +100,24 @@
         });
 
         socket.on('upload-cancel', function (data){
-          Content = "<span>Upload canceled by server (Error : " + data.message + ")</span>";
-          Content += "<span>Refreshing in 5 seconds</span>";
+          Content = "<span style='color: red'>Upload canceled (" + data.message + ")</span><br>";
+          Content += "<span>Refreshing in 3 seconds</span>";
           document.getElementById('menu2').innerHTML = Content;
           window.setTimeout(function () {
             var url = getRootUrl();
             window.location.href = url;
-          }, 5000);
+          }, 3000);
         });
 
         socket.on('done', function (data){
           var Content = Name + " successfully uploaded !<BR>";
-          Content += "<span>Refreshing in 5 seconds</span>";
+          Content += "<span>Refreshing in 3 seconds</span>";
           document.getElementById('menu2').innerHTML = Content;
           window.setTimeout(function () {
             uploading = false;
             var url = getRootUrl();
             window.location.href = url;
-          }, 5000);
+          }, 3000);
         });
 
         function Refresh(){

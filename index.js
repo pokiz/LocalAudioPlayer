@@ -126,7 +126,7 @@ app.post('/add', function(req, res){
 					cb_render_page();
 				}else
 				{
-					// File downloaded ;)
+					messages.push("Song added !");
 					cb_add_music(cb_render_page);
 				}
 			});		
@@ -141,12 +141,13 @@ app.post('/add', function(req, res){
 					cb_render_page();
 				}else
 				{
-					// File downloaded ;)
+					messages.push("Song added !");
 					cb_add_music(cb_render_page);
 				}
 			});		
 		}
-	}
+	}else
+		cb_render_page();
 });
 
 http.listen(3000, function(){
@@ -154,11 +155,11 @@ http.listen(3000, function(){
 });
 
 io.sockets.on('connection', function (socket) {
-	console.log(socket.id);
 	++client_count;
     io.sockets.emit('user join', {
     	count: client_count
     });
+
 	socket.on('up', function (data) {
 		var item = music.get_by_id(data.id);
 		if (item)
@@ -169,14 +170,28 @@ io.sockets.on('connection', function (socket) {
 			});
 		}
 	});
+
 	socket.on('remove', function (data) {
 		music.remove_by_id(data.id);
 		io.sockets.emit('remove', {id: data.id});
 	});
+
 	socket.on('disconnect', function () {
       	--client_count;
       	if (typeof uploads[socket.id] != "undefined")
+      	{
+			if (Object.keys(uploads[socket.id]).length)
+			{
+				var obj = Object.keys(uploads[socket.id])[0];
+				fs.unlink(LAP.temp_path + obj.output_name, function(){
+					if(err) {
+						console.log("Error removing temp file, after socket disconnection.");
+						console.log(err);
+					}
+				});
+			}
 		   	delete uploads[socket.id];
+      	}
       	socket.broadcast.emit('user left', {
         	count: client_count
       	});
@@ -189,6 +204,16 @@ io.sockets.on('connection', function (socket) {
 		var name = data['name'];
 		var id = music.get_unique_id();
 		var extension = null;
+		if (typeof name != "string" || (name.length < 2 || name.length > 128))
+		{
+			socket.emit('upload-cancel', { 'message' : "Name is not valid" });
+			return;
+		}
+		if (!music.check_name_uniqueness(name))
+		{
+			socket.emit('upload-cancel', { 'message' : "Name is already taken" });
+			return;
+		}
 		if (type == "audio/mpeg")
 			extension = "mp3";
 		if (type == "audio/mp3")
@@ -216,7 +241,7 @@ io.sockets.on('connection', function (socket) {
 		}
 	  	catch(er){
 	  		console.log("File doesnt exists");
-	  	} //It's a New File
+	  	}
 		fs.open(LAP.temp_path + uploads[socket.id][name].output_name, 'a', 0755, function(err, fd){
 			if(err)
 			{
@@ -232,7 +257,7 @@ io.sockets.on('connection', function (socket) {
 	
 	socket.on('upload', function (data){
 			var name = data['name'];
-			if (typeof uploads[socket.id] != "undefined" && typeof uploads[socket.id][name] == "undefined")
+			if (typeof uploads[socket.id] == "undefined" || typeof uploads[socket.id][name] == "undefined")
 				return;
 			uploads[socket.id][name]['downloaded'] += data['data'].length;
 			uploads[socket.id][name]['data'] += data['data'];

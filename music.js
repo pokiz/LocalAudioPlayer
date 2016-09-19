@@ -40,13 +40,10 @@ module.exports = {
 	    	date.getHours(),
 	    	date.getMinutes(),
 	    	date.getSeconds(),
-	    	date.getMilliseconds()
+	    	date.getMilliseconds(),
+	    	Math.random()
 		];
 		var id = components.join("");
-		while (!module.exports.check_id_uniqueness(id))
-		{
-			id = get_unique_id();
-		}
 		return (id);
 	},
 	sort_and_save: function(next)
