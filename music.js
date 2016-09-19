@@ -95,6 +95,8 @@ module.exports = {
 	{
 		var output_file = download_dir + obj.id + ".mp3";
 		var cb_download = function(url) {
+			if (!url)
+				next("Cannot download file, no url");
 			if (url.indexOf("soundcloud") !== -1)
 			{
 				soundcloud.get_mp3_from_base_track_url(url, output_file, function(err) {

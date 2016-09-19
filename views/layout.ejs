@@ -2,7 +2,7 @@
 <html lang="en">  
   <head>
     <meta charset="utf-8">
-    <title>Pivotal Search</title>
+    <title>Audio Player</title>
     <meta name="description" content="">
     <meta name="author" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -23,12 +23,19 @@
   <body>
     <%- body %>
     <script type="text/javascript">
+        var uploading = false;
         var socket = io.connect();
         var routines = setInterval(function() {
           if ($(".now-playing-remaining"))
           {
             var now = new Date().getTime();
-            var remaining = parseInt((parseInt($(".now-playing-remaining").attr("data-end-timestamp")) - now) / 1000);
+            var end_timestamp = parseInt($(".now-playing-remaining").attr("data-end-timestamp"));
+            if (!end_timestamp)
+            {
+              $(".now-playing-remaining").text("Waiting song...");
+              return;
+            }
+            var remaining = parseInt((end_timestamp - now) / 1000);
             var hours = Math.floor(remaining / 3600),
                 minutes = Math.floor((remaining / 60) % 60),
                 seconds = Math.floor(remaining % 60);
@@ -44,22 +51,32 @@
           }
         }, 1000);
 
+        window.addEventListener("load", Ready);
+
         socket.on('connection', function () {
           console.log("New user connected");
         });
         socket.on('up', function (data) {
+          if (uploading)
+            return;
           var url = getRootUrl();
           window.location.href = url;
         });
         socket.on('add', function (data) {
+          if (uploading)
+            return;
           var url = getRootUrl();
           window.location.href = url;
         });
         socket.on('remove', function (data) {
+          if (uploading)
+            return;
           var url = getRootUrl();
           window.location.href = url;
         });
         socket.on('now-playing', function (data) {
+          if (uploading)
+            return;
           var url = getRootUrl();
           window.location.href = url;
         });
@@ -69,10 +86,104 @@
         socket.on('user left', function (data) {
           $(".users-count").html(data.count);
         });
-      function getRootUrl() {
-        return window.location.origin?window.location.origin+'/':window.location.protocol+'/'+window.location.host+'/';
-      }
+        socket.on('upload-continue', function (data){
+          UpdateBar(data['percent']);
+          var Place = data['place'] * 524288; //The Next Blocks Starting Position
+          var NewFile; //The Variable that will hold the new Block of Data
+          if(SelectedFile.slice)
+            NewFile = SelectedFile.slice(Place, Place + Math.min(524288, (SelectedFile.size-Place)));
+          else if (SelectedFile.webkitSlice)
+            NewFile = SelectedFile.webkitSlice(Place, Place + Math.min(524288, (SelectedFile.size-Place)));
+          else
+            NewFile = SelectedFile.mozSlice(Place, Place + Math.min(524288, (SelectedFile.size-Place)));
+          FReader.readAsBinaryString(NewFile);
+        });
 
+        socket.on('upload-cancel', function (data){
+          Content = "<span>Upload canceled by server (Error : " + data.message + ")</span>";
+          Content += "<span>Refreshing in 5 seconds</span>";
+          document.getElementById('menu2').innerHTML = Content;
+          window.setTimeout(function () {
+            var url = getRootUrl();
+            window.location.href = url;
+          }, 5000);
+        });
+
+        socket.on('done', function (data){
+          var Content = Name + " successfully uploaded !<BR>";
+          Content += "<span>Refreshing in 5 seconds</span>";
+          document.getElementById('menu2').innerHTML = Content;
+          window.setTimeout(function () {
+            uploading = false;
+            var url = getRootUrl();
+            window.location.href = url;
+          }, 5000);
+        });
+
+        function Refresh(){
+          location.reload(true);
+        }
+        function getRootUrl() {
+          return window.location.origin?window.location.origin+'/':window.location.protocol+'/'+window.location.host+'/';
+        }
+        function Ready(){ 
+          if(window.File && window.FileReader){
+            document.getElementById('UploadButton').addEventListener('click', StartUpload);  
+            document.getElementById('FileBox').addEventListener('change', FileChosen);
+          }
+          else
+          {
+            document.getElementById('menu2').innerHTML = "Your Browser Doesn't Support The File API Please Update Your Browser";
+          }
+        }
+
+        var SelectedFile;
+        function FileChosen(evnt) {
+              SelectedFile = evnt.target.files[0];
+              if (SelectedFile.type.indexOf("audio/mpeg") == -1
+                  && SelectedFile.type.indexOf("audio/mp3") == -1)
+              {
+                window.alert("Please select an audio file (MP3)");
+                document.getElementById('FileBox').value = "";
+              }
+              else
+              {
+                if (document.getElementById('NameBox').value == "")
+                  document.getElementById('NameBox').value = SelectedFile.name;
+              }
+          }
+
+        var FReader;
+        var Name;
+        function StartUpload(){
+          if(document.getElementById('FileBox').value != "")
+          {
+            uploading = true;
+            FReader = new FileReader();
+            Name = document.getElementById('NameBox').value;
+            var Content = "<span id='NameArea'>Uploading " + SelectedFile.name + " as " + Name + "</span>";
+            Content += "<span id='Uploaded' class='col-xs-8 col-xs-offset-2'><span id='MB'>0</span>/" + Math.round(SelectedFile.size / 1048576) + "MB</span>";
+            Content += '<div class=" col-xs-12 progress progress-striped active"><div id="progress-bar" class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>'
+            document.getElementById('menu2').innerHTML = Content;
+            FReader.onload = function(evnt){
+              socket.emit('upload', { 'name' : Name, data : evnt.target.result });
+            }
+            socket.emit('upload-start', { 'name' : Name, 'size' : SelectedFile.size, 'type': SelectedFile.type });
+          }
+          else
+          {
+            alert("Please Select A File");
+          }
+        }
+
+        function UpdateBar(percent){
+          var bar = document.getElementById('progress-bar');
+          bar.style.width = percent+'%';
+          bar["aria-valuenow"] = percent;
+          var MBDone = Math.round(((percent/100.0) * SelectedFile.size) / 1048576);
+          document.getElementById('MB').innerHTML = MBDone;
+        }
+        
     </script>
   </body>
 </html>  

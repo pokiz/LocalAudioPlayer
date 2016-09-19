@@ -1,3 +1,11 @@
+global.LAP = {
+	application_title: "El Jukebox",
+	download_path: "./downloaded/",
+	temp_path: "./temp/"
+};
+
+var uploads = {};
+var client_count = 0;
 var	fs = require('fs');
 var timer = require("timers");
 var volume = require('./volume');
@@ -29,17 +37,17 @@ var routines = timer.setInterval(function() {
 	}
 }, 1000);
 
-var client_count = 0;
-
-global.LAP = {
-	download_path: "./downloaded/",
-	application_title: "El Jukebox"
-};
 
 try {
 	fs.statSync(LAP.download_path);
 } catch(e) {
 	fs.mkdirSync(LAP.download_path);
+}
+
+try {
+	fs.statSync("./temp/");
+} catch(e) {
+	fs.mkdirSync("./temp/");
 }
 
 /*----]
@@ -146,6 +154,7 @@ http.listen(3000, function(){
 });
 
 io.sockets.on('connection', function (socket) {
+	console.log(socket.id);
 	++client_count;
     io.sockets.emit('user join', {
     	count: client_count
@@ -166,10 +175,109 @@ io.sockets.on('connection', function (socket) {
 	});
 	socket.on('disconnect', function () {
       	--client_count;
+      	if (typeof uploads[socket.id] != "undefined")
+		   	delete uploads[socket.id];
       	socket.broadcast.emit('user left', {
         	count: client_count
       	});
 	});
+
+  	socket.on('upload-start', function (data) { //data contains the variables that we passed through in the html file
+      	if (typeof uploads[socket.id] != "undefined")
+      		return;
+      	var type = data['type'];
+		var name = data['name'];
+		var id = music.get_unique_id();
+		var extension = null;
+		if (type == "audio/mpeg")
+			extension = "mp3";
+		if (type == "audio/mp3")
+			extension = "mp3";
+		if (!extension)
+			return;
+		uploads[socket.id] = {};
+		uploads[socket.id][name] = {  //Create a new Entry in The Files Variable
+			size : data['size'],
+			data	 : "",
+			downloaded : 0,
+			id: id,
+			output_name: id + "." + extension
+		};
+		console.log("Upload launched : " + name + "(" + uploads[socket.id][name].size + ")");
+		var place = 0;
+		try{
+			var stat = fs.statSync(LAP.temp_path + uploads[socket.id][name].output_name);
+			if(stat.isFile())
+			{
+				uploads[socket.id][name]['downloaded'] = stat.size;
+				place = stat.size / 524288;
+				return;
+			}
+		}
+	  	catch(er){
+	  		console.log("File doesnt exists");
+	  	} //It's a New File
+		fs.open(LAP.temp_path + uploads[socket.id][name].output_name, 'a', 0755, function(err, fd){
+			if(err)
+			{
+				console.log(err);
+			}
+			else
+			{
+				uploads[socket.id][name]['handler'] = fd; //We store the file handler so we can write to it later
+				socket.emit('upload-continue', { 'place' : place, percent : 0 });
+			}
+		});
+	});
+	
+	socket.on('upload', function (data){
+			var name = data['name'];
+			if (typeof uploads[socket.id] != "undefined" && typeof uploads[socket.id][name] == "undefined")
+				return;
+			uploads[socket.id][name]['downloaded'] += data['data'].length;
+			uploads[socket.id][name]['data'] += data['data'];
+			if(uploads[socket.id][name]['downloaded'] == uploads[socket.id][name]['size']) //If File is Fully Uploaded
+			{
+				fs.write(uploads[socket.id][name]['handler'], uploads[socket.id][name]['data'], null, 'Binary', function(err, Writen){
+					fs.readFile(LAP.temp_path + uploads[socket.id][name].output_name, function(err, data) {
+    					fs.writeFile(LAP.download_path + uploads[socket.id][name].output_name, data, function(err) {
+    						if (err){
+    							console.log("Error writing output file to download ");
+    							console.log(err);
+    						}
+        					fs.unlink(LAP.temp_path + uploads[socket.id][name].output_name, function(){
+            					if(err) {
+									console.log("Error unlinkin file from temp");
+									console.log(err);
+            					}
+								audio.get_file_duration_sec(LAP.download_path + uploads[socket.id][name].output_name, function (duration) {
+									music.add(uploads[socket.id][name].id, name, null, duration, function() {
+										socket.emit('done', {});
+										io.sockets.emit("add", {id: uploads[socket.id][name].id});
+										delete uploads[socket.id];
+									});
+								});
+        					});
+	    				}); 
+					});
+				});
+			}
+			else if(uploads[socket.id][name]['data'].length > 10485760){ //If the data Buffer reaches 10MB
+				fs.write(uploads[socket.id][name]['handler'], uploads[socket.id][name]['data'], null, 'Binary', function(err, Writen){
+					uploads[socket.id][name]['data'] = ""; //Reset The Buffer
+					var place = uploads[socket.id][name]['downloaded'] / 524288;
+					var percent = (uploads[socket.id][name]['downloaded'] / uploads[socket.id][name]['size']) * 100;
+					socket.emit('upload-continue', { 'place' : place, 'percent' :  percent});
+				});
+			}
+			else
+			{
+				var place = uploads[socket.id][name]['downloaded'] / 524288;
+				var percent = (uploads[socket.id][name]['downloaded'] / uploads[socket.id][name]['size']) * 100;
+				socket.emit('upload-continue', { 'place' : place, 'percent' :  percent});
+			}
+	});
+
 });
 
 /*
@@ -179,6 +287,7 @@ io.sockets.on('connection', function (socket) {
 
 function loop_playing()
 {
+	console.log("Loop playing called.");
 	var to_play = music.get_next();
 	var cb_play = function () {
 		music.download_file_if_empty_or_none(LAP.download_path, to_play, function(err) {

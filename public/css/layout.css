@@ -10,15 +10,15 @@ body {
 }
 
 .header {
-	height: 20%;
+	height: 18%;
 }
 .music-list {
-	height: 45%;
+	height: 40%;
 	overflow: auto;
 }
 
 .add-form {
-	height: 35%;
+	height: 40%;
 	margin-bottom: 0px;
 }
 

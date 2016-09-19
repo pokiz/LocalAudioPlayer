@@ -1,29 +1,32 @@
 var loudness = require('loudness');
 var timer = require("timers");
 
+var fade_in_effect_to = null;
+var fade_out_effect_to = null;
+
 module.exports = {
 	actual: 50,
 	transition: false,
 	before_fadeout: 50,
 	fade_in_length: 5,
-	fade_in_step: 25,
+	fade_in_step: 10,
 	fade_in_actual_step: 0,
-	get_fade_in_interval: function () { return ((module.exports.fade_in_length * 1000) / module.exports.fade_in_step) },
 	fade_out_length: 6,
-	fade_out_step: 20,
+	fade_out_step: 10,
 	fade_out_actual_step: 0,
+	get_fade_in_interval: function () { return ((module.exports.fade_in_length * 1000) / module.exports.fade_in_step) },
 	get_fade_out_interval: function () { return ((module.exports.fade_out_length * 1000) / module.exports.fade_out_step) },
-	fade_in_effect: function (next)
+	fade_in_effect: function (next, retry)
 	{
+		if (typeof retry)
 		if (module.exports.fade_in_actual_step)
 		{
-			console.log("Already fading in, returning...");
 			return ((typeof next == "function") ? next(true) : null);
 		}
 		if (module.exports.fade_out_actual_step)
 		{
-			console.log("Already fading out, retrying...");
-			timer.setTimeout(module.exports.fade_in_effect, 250);
+			//return ((typeof next == "function") ? next(true) : null);
+			timer.setTimeout(module.exports.fade_in_effect, 500);
 		}
 		console.log("Fading in...");		
 		var cb = function cb(){
@@ -56,12 +59,10 @@ module.exports = {
 	{	
 		if (module.exports.fade_in_actual_step)
 		{
-			console.log("Already fading in, returning...");
 			return ((typeof next == "function") ? next(true) : null);
 		}
 		if (module.exports.fade_out_actual_step)
 		{
-			console.log("Already fading out, returning...");
 			return ((typeof next == "function") ? next(true) : null);
 		}
 		module.exports.transition = true;
