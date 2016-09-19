@@ -39,3 +39,14 @@ body {
 .alert-fixed .alert {
   margin-bottom: 0;
 }
+
+.row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.add-form .tab-content {
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+}
