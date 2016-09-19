@@ -1,5 +1,6 @@
 # LocalAudioPlayer
 (from SoundCloud, Youtube, and even uploaded MP3 !)
+
 Local audio player with a playlist gracefully filled by clients via a web interface.
 
 ## Requirements:
